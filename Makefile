@@ -1,10 +1,11 @@
-all: pcfg_tool
+PYTHON = python3
+
+.DEFAULT_GOAL = pcfg_tool
 
 pcfg_tool:
-	@echo "build tool..."
-	pcfg_tool
+	mkdir output
+	${PYTHON} pcfg_tool.py
 
 clean:
-	find . -type f -name *.pyc -delete
-    find . -type d -name __pycache__ -delete
-
+	rm -r *.pyc
+	rmdir -r output
