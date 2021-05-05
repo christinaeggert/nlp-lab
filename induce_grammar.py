@@ -1,23 +1,24 @@
 from collections import Counter
 import sys
 
+
 def get_rules(branch):
     rl = []
     rr = []
     v = set()
     n = []
     # only two symbols left: A v
-    leafs = branch.split()
-    if len(leafs) == 2:
+    leaves = branch.split()
+    if len(leaves) == 2:
         # save lexical rule and word
-        rl.append(leafs[0] + ' ' + leafs[1])
-        v.add(leafs[1])
-        n.append(leafs[0])
+        rl.append(leaves[0] + ' ' + leaves[1])
+        v.add(leaves[1])
+        n.append(leaves[0])
 
-        return leafs[0], rl, rr, v, n
-    elif len(leafs) < 2:
+        return leaves[0], rl, rr, v, n
+    elif len(leaves) < 2:
         print('ERROR: Something went wrong if there is only one symbol left.')
-        exit(1)
+        return 'err', [], [], [], []
 
     # A -> A ...
     root, branches = branch.split(' ', 1)
@@ -36,17 +37,24 @@ def get_rules(branch):
                 br.append(branches[cut:i + 1])
                 cut = i + 2
 
+    if closing != opening:
+        print('ERROR: The number of opening and closing parentheses does not add up.')
+        return 'err', [], [], [], []
+
     # get next rule
     rule = root + ' ->'
     for i in range(len(br)):
         # call function for new found branch without the outmost parentheses
-        notterminal, rulesl, rulesr, words, notterminals = get_rules(br[i][1:len(br[i]) - 1])
-        rule = rule + ' ' + notterminal
+        nonterminal, rulesl, rulesr, words, nonterminals = get_rules(br[i][1:len(br[i]) - 1])
+        # don't use illegal tree for the grammar
+        if nonterminal == 'err':
+            return 'err', [], [], [], []
+        rule = rule + ' ' + nonterminal
         # save rules and words from lower branches
         rl = rl + rulesl
         rr = rr + rulesr
         v.update(words)
-        n = n + notterminals
+        n = n + nonterminals
 
     # add new rule
     rr.append(rule)
@@ -65,16 +73,22 @@ def induce_grammar(file, name):
     line = 1
     lines = len(f.readlines())
     f.close()
+    # iterate over all training data
     for tree in open(file):
         root, rulesl, rulesr, words, notterminals = get_rules(tree[1:len(tree) - 2])
+
+        if root == 'err':
+            continue
 
         if s != '':
             if s != root:
                 print('ERROR: start symbol changed from ', s, ' to ', root)
-                exit(1)
+                # don't use this tree
+                continue
         else:
             s = root
 
+        # add rules and symbols to grammar
         rr = rr + rulesr
         rl = rl + rulesl
         v.update(words)
