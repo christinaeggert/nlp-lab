@@ -19,7 +19,7 @@ def get_rules(branch):
 
         return leaves[0], rl, rr, v, n
     elif len(leaves) < 2:
-        print('ERROR: Something went wrong if there is only one symbol left. ', leaves)
+        #print('ERROR: Something went wrong if there is only one symbol left. ', leaves)
         return 'err', [], [], [], []
 
     # A -> A ...
@@ -40,7 +40,7 @@ def get_rules(branch):
                 cut = i + 2
 
     if closing != opening:
-        print('ERROR: The number of opening and closing parentheses does not add up.')
+        #print('ERROR: The number of opening and closing parentheses does not add up.')
         return 'err', [], [], [], []
 
     # get next rule
@@ -84,7 +84,7 @@ def induce_grammar(name):
 
         if s != '':
             if s != root:
-                print('ERROR: start symbol changed from ', s, ' to ', root)
+                #print('ERROR: start symbol changed from ', s, ' to ', root)
                 # don't use this tree
                 continue
         else:
@@ -98,8 +98,8 @@ def induce_grammar(name):
         # print(line, '/', lines, ' trees', end="\r")
         # line = line + 1
 
-    nrr = Counter(rr)
-    nrl = Counter(rl)
+    nrr = Counter(sorted(rr))
+    nrl = Counter(sorted(rl))
     nn = Counter(n)
     w = sorted(v)
 
@@ -107,11 +107,13 @@ def induce_grammar(name):
     if name == '':
         for key in nrr:
             root, rest = key.split(' ', 1)
-            print(key, ' ', str(nrr[key] / nn[root]))
+            p = nrr[key] / nn[root]
+            print(key, "{1:0.{0}f}".format(int(p % 1 > 0), p))
 
         for key in nrl:
             root, rest = key.split(' ', 1)
-            print(key, ' ', str(nrl[key] / nn[root]))
+            p = nrl[key] / nn[root]
+            print(key, p)
 
         for word in w:
             print(word)

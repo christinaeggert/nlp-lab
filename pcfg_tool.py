@@ -10,7 +10,7 @@ parser.add_argument('name', metavar='name', type=str, nargs='?',
 
 args = parser.parse_args()
 if args.func[0] == 'induce':
-    print('Induziere Grammatik...')
+    #print('Induziere Grammatik...')
     name = ''
     if args.name:
         name = args.name
