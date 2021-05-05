@@ -5,15 +5,16 @@ import induce_grammar
 
 parser = argparse.ArgumentParser(description='Verarbeitung natürlicher Sprache')
 parser.add_argument('func', metavar='func', type=str, nargs=1, help='one of the implemented functions (induce)')
-parser.add_argument('-f', default='../corpora/training.mrg',
-                    help='filename of the  (default: ../corpora/training.mrg)')
-parser.add_argument('-n', default='grammar1',
-                    help='name of the grammar (default: grammar1)')
+parser.add_argument('name', metavar='name', type=str, nargs='?',
+                    help='name of the grammar')
 
 args = parser.parse_args()
 if args.func[0] == 'induce':
     print('Induziere Grammatik...')
-    induce_grammar.induce_grammar(args.f, args.n)
+    name = ''
+    if args.name:
+        name = args.name
+    induce_grammar.induce_grammar(name)
 else:
     print('ERROR: ', args.func[0], ' is not implemented.')
     exit(22)

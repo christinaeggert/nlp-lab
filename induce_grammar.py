@@ -3,6 +3,8 @@ import sys
 
 
 def get_rules(branch):
+    if branch == '':
+        return 'err', [], [], [], []
     rl = []
     rr = []
     v = set()
@@ -17,7 +19,7 @@ def get_rules(branch):
 
         return leaves[0], rl, rr, v, n
     elif len(leaves) < 2:
-        print('ERROR: Something went wrong if there is only one symbol left.')
+        print('ERROR: Something went wrong if there is only one symbol left. ', leaves)
         return 'err', [], [], [], []
 
     # A -> A ...
@@ -62,19 +64,19 @@ def get_rules(branch):
     return root, rl, rr, v, n
 
 
-def induce_grammar(file, name):
+def induce_grammar(name):
     s = ''  # start symbol
     rr = []  # rules
     rl = []  # lexical rules
     v = set()  # words
     n = []  # notterminals
     # import data from file
-    f = open(file)
-    line = 1
-    lines = len(f.readlines())
-    f.close()
+    # f = open(file)
+    # line = 1
+    # lines = len(f.readlines())
+    # f.close()
     # iterate over all training data
-    for tree in open(file):
+    for tree in sys.stdin:
         root, rulesl, rulesr, words, notterminals = get_rules(tree[1:len(tree) - 2])
 
         if root == 'err':
@@ -93,28 +95,41 @@ def induce_grammar(file, name):
         rl = rl + rulesl
         v.update(words)
         n = n + notterminals
-        print(line, '/', lines, ' trees', end="\r")
-        line = line + 1
+        # print(line, '/', lines, ' trees', end="\r")
+        # line = line + 1
 
     nrr = Counter(rr)
     nrl = Counter(rl)
     nn = Counter(n)
     w = sorted(v)
 
+    # calculate probabilities and write to stdout
+    if name == '':
+        for key in nrr:
+            root, rest = key.split(' ', 1)
+            print(key, ' ', str(nrr[key] / nn[root]))
+
+        for key in nrl:
+            root, rest = key.split(' ', 1)
+            print(key, ' ', str(nrl[key] / nn[root]))
+
+        for word in w:
+            print(word)
     # calculate probabilities and save data in files
-    f = open('output/' + name + '.rules', "w")
-    for key in nrr:
-        root, rest = key.split(' ', 1)
-        f.write(key + ' ' + str(nrr[key] / nn[root]) + '\n')
-    f.close()
+    else:
+        f = open(name + '.rules', "w")
+        for key in nrr:
+            root, rest = key.split(' ', 1)
+            f.write(key + ' ' + str(nrr[key] / nn[root]) + '\n')
+        f.close()
 
-    f = open('output/' + name + '.lexicon', "w")
-    for key in nrl:
-        root, rest = key.split(' ', 1)
-        f.write(key + ' ' + str(nrl[key] / nn[root]) + '\n')
-    f.close()
+        f = open(name + '.lexicon', "w")
+        for key in nrl:
+            root, rest = key.split(' ', 1)
+            f.write(key + ' ' + str(nrl[key] / nn[root]) + '\n')
+        f.close()
 
-    f = open('output/' + name + '.words', "w")
-    for word in w:
-        f.write(word + '\n')
-    f.close()
+        f = open(name + '.words', "w")
+        for word in w:
+            f.write(word + '\n')
+        f.close()
