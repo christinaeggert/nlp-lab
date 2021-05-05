@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 #others
-output/*
 .idea
+vir_env

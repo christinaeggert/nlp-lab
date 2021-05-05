@@ -3,9 +3,16 @@ PYTHON = python3
 .DEFAULT_GOAL = pcfg_tool
 
 pcfg_tool:
-	mkdir output
-	${PYTHON} pcfg_tool.py
+	@${PYTHON} -m venv vir_env
+	@. vir_env/bin/activate
+	@mkdir -p vir_env/output
+	@cp pcfg_tool.py vir_env/pcfg_tool
+	@chmod +x vir_env/pcfg_tool
+	@cp induce_grammar.py vir_env/induce_grammar.py
+	@cd vir_env;./bin/pip3 install -r ../requirements.txt; cd ..
 
 clean:
-	rm -r *.pyc
-	rmdir -r output
+	@rm vir_env/pcfg_tool || true
+	@rm vir_env/induce_grammar.py || true
+	@rm vir_env/output/* || true
+	@rmdir vir_env/output || true
