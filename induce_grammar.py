@@ -113,7 +113,7 @@ def induce_grammar(name):
         for key in nrl:
             root, rest = key.split(' ', 1)
             p = nrl[key] / nn[root]
-            print(key, p)
+            print(key, "{1:0.{0}f}".format(int(p % 1 > 0), p))
 
         for word in w:
             print(word)
@@ -122,13 +122,15 @@ def induce_grammar(name):
         f = open(name + '.rules', "w")
         for key in nrr:
             root, rest = key.split(' ', 1)
-            f.write(key + ' ' + str(nrr[key] / nn[root]) + '\n')
+            p = nrr[key] / nn[root]
+            f.write(key + ' ' + "{1:0.{0}f}".format(int(p % 1 > 0), p) + '\n')
         f.close()
 
         f = open(name + '.lexicon', "w")
         for key in nrl:
             root, rest = key.split(' ', 1)
-            f.write(key + ' ' + str(nrl[key] / nn[root]) + '\n')
+            p = nrl[key] / nn[root]
+            f.write(key + ' ' + "{1:0.{0}f}".format(int(p % 1 > 0), p) + '\n')
         f.close()
 
         f = open(name + '.words', "w")
