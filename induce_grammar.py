@@ -142,7 +142,7 @@ def induce_grammar(name):
             if p % 1 > 0:
                 f.write(key + ' ' + str(p) + '\n')
             else: 
-                f.write(key + ' ' + "{:d}".format(p) + '\n')
+                f.write(key + ' ' + "{:d}".format(int(p)) + '\n')
         f.close()
 
         f = open(name + '.words', "w")
