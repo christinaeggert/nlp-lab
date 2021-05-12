@@ -18,7 +18,7 @@ def merge_rules(dict1, dict2):
 
 def get_rules(branch):
     if branch == '':
-        return 'err', {}, {}, [], []
+        return 'err', {}, {}, []
     rr = {}  # rules
     rl = {}  # lexical rules
     v = set()  # words
@@ -37,7 +37,7 @@ def get_rules(branch):
         return leaves[0], rl, rr, v  # , n
     elif len(leaves) < 2:
         print('ERROR: Something went wrong if there is only one symbol left. ', leaves, file=sys.stderr)
-        return 'err', [], [], []  # , []
+        return 'err', {}, {}, []  # , []
 
     # A -> A ...
     root, branches = branch.split(' ', 1)
@@ -58,7 +58,7 @@ def get_rules(branch):
 
     if closing != opening:
         print('ERROR: The number of opening and closing parentheses does not add up.', file=sys.stderr)
-        return 'err', [], [], []  # , []
+        return 'err', {}, {}, []  # , []
 
     # get next rule
     right_side = []
@@ -88,6 +88,35 @@ def get_rules(branch):
     return root, rl, rr, v  # , n
 
 
+def pre_check(tree):
+    # check if we even need to take a look at it
+    opening = re.findall(r'\(', tree)
+    closing = re.findall(r'\)', tree)
+    if len(opening) != len(closing):
+        print('ERROR: The number of opening and closing parentheses does not add up.', file=sys.stderr)
+        return ''
+
+    # ignore everything before the first opening parenthesis
+    i = 0
+    while tree[i] != '(':
+        i = i + 1
+    tree = tree[i:len(tree)]
+
+    # insert and or remove white spaces
+    problems = re.findall(r'(\w|\))\(', tree)
+    for combo in problems:
+        if (combo[0]) == ')':
+            rex = r'\)\('
+        else:
+            rex = combo[0] + r'\('
+        tree = re.sub(rex, combo[0] + ' (', tree)
+    tree = re.sub(r' +', ' ', tree)
+    tree = re.sub(r'\( ', '(', tree)
+    tree = re.sub(r' \)', ')', tree)
+
+    return tree
+
+
 def induce_grammar(name):
     s = ''  # start symbol
     rr = {}  # rules
@@ -96,18 +125,10 @@ def induce_grammar(name):
     # n = []  # notterminals
     # iterate over all training data
     for tree in sys.stdin:
-        # ignore everything before the first opening parenthesis
-        i = 0
-        while tree[i] != '(':
-            i = i + 1
-        tree = tree[i:len(tree)]
-        # insert and or remove white spaces
-        problems = re.findall(r'\w\(', tree)
-        for combo in problems:
-            tree = re.sub(combo[0] + r'\(', combo[0] + ' (', tree)
-        tree = re.sub(r' +', ' ', tree)
-        tree = re.sub(r'\( ', '(', tree)
-        tree = re.sub(r' \)', ')', tree)
+        tree = pre_check(tree)
+        if tree == '':
+            continue
+
         root, rulesl, rulesr, words = get_rules(tree[1:len(tree) - 2])
 
         if root == 'err':
