@@ -1,47 +1,46 @@
 import re
 import sys
+import collections
 
 
 # merges dict2 into dict1
 def merge_rules(dict1, dict2):
-    for root in dict2:
-        if root in dict1:
-            for word in dict2[root]:
-                if word in dict1[root]:
-                    dict1[root][word] = dict1[root][word] + dict2[root][word]
-                else:
-                    dict1[root][word] = dict2[root][word]
+    for lhs, rules in dict2.items():
+        if lhs in dict1:
+            for rhs in rules:
+                dict1[lhs][rhs] += dict2[lhs][rhs]
         else:
-            dict1[root] = dict2[root]
+            dict1[lhs] = dict2[lhs]
     return dict1
 
 
 def get_rules(branch):
     if branch == '':
-        return 'err', {}, {}, []
+        return 'err', {}, {}, [], {}
     rr = {}  # rules
     rl = {}  # lexical rules
     v = set()  # words
-    # n = []  # notterminals
+    n = collections.defaultdict(int)  # notterminals
     # only two symbols left: A v
     leaves = branch.split()
     if len(leaves) == 2:
         # save lexical rule and word
-        rl[leaves[0]] = {
-            'root_count': 1,
-            leaves[1]: 1
-        }
-        v.add(leaves[1])
-        # n.append(leaves[0])  # even necessary anymore?
 
-        return leaves[0], rl, rr, v  # , n
+        rl = {
+            leaves[0]: collections.defaultdict(int, {
+                leaves[1]: 1
+            })}
+        v.add(leaves[1])
+        n[leaves[0]] = 1
+
+        return leaves[0], rl, rr, v, n
     elif len(leaves) < 2:
         print('ERROR: Something went wrong if there is only one symbol left. ', leaves, file=sys.stderr)
-        return 'err', {}, {}, []  # , []
+        return 'err', {}, {}, [], {}
 
     # A -> A ...
     root, branches = branch.split(' ', 1)
-    # n.append(root)
+    n[root] = 1
     # find the branches by matching parentheses
     opening = 0
     closing = 0
@@ -58,34 +57,34 @@ def get_rules(branch):
 
     if closing != opening:
         print('ERROR: The number of opening and closing parentheses does not add up.', file=sys.stderr)
-        return 'err', {}, {}, []  # , []
+        return 'err', {}, {}, [], {}
 
     # get next rule
     right_side = []
     for i in range(len(br)):
         # call function for new found branch without the outmost parentheses
-        nonterminal, rulesl, rulesr, words = get_rules(br[i][1:len(br[i]) - 1])
+        nonterminal, rulesl, rulesr, words, nonterminals = get_rules(br[i][1:len(br[i]) - 1])
         # don't use illegal tree for the grammar
         if nonterminal == 'err':
-            return 'err', {}, {}, []  # , []
+            return 'err', {}, {}, [], {}
         right_side.append(nonterminal)
         # save rules and words from lower branches
         rl = merge_rules(rl, rulesl)
         rr = merge_rules(rr, rulesr)
         v.update(words)
-        # n = n + nonterminals
+        for nt in nonterminals:
+            n[nt] += nonterminals[nt]
     right_side = tuple(right_side)
 
     # add new rule
     rule = {
-        root: {
-            'root_count': 1,
+        root: collections.defaultdict(int, {
             right_side: 1
-        }
+        })
     }
     rr = merge_rules(rr, rule)
 
-    return root, rl, rr, v  # , n
+    return root, rl, rr, v, n
 
 
 def pre_check(tree):
@@ -122,14 +121,14 @@ def induce_grammar(name):
     rr = {}  # rules
     rl = {}  # lexical rules
     v = set()  # words
-    # n = []  # notterminals
+    n = collections.defaultdict(int)  # notterminals
     # iterate over all training data
     for tree in sys.stdin:
         tree = pre_check(tree)
         if tree == '':
             continue
 
-        root, rulesl, rulesr, words = get_rules(tree[1:len(tree) - 2])
+        root, rulesl, rulesr, words, nonterminals = get_rules(tree[1:len(tree) - 2])
 
         if root == 'err':
             continue
@@ -146,85 +145,52 @@ def induce_grammar(name):
         rr = merge_rules(rr, rulesr)
         rl = merge_rules(rl, rulesl)
         v.update(words)
-        # n = n + notterminals
+        for nt in nonterminals:
+            n[nt] += nonterminals[nt]
 
     w = sorted(v)
 
     # calculate probabilities and write to stdout
     if name == '':
-        for root in rr.keys():
-            if root in rl:
-                total = rr[root]['root_count'] + rl[root]['root_count']
-            else:
-                total = rr[root]['root_count']
-            for right in rr[root].keys():
-                if right == 'root_count':
-                    continue
-
-                rr[root][right] = rr[root][right] / total
-                if rr[root][right] % 1 > 0:
-                    print(root, '->', *right, rr[root][right])
+        for lhs, rules in rr.items():
+            for rhs in rules:
+                rr[lhs][rhs] = rr[lhs][rhs] / n[lhs]
+                if rr[lhs][rhs] % 1 > 0:
+                    print(lhs, '->', *rhs, rr[lhs][rhs])
                 else:
-                    print(root, '->', *right, "{:d}".format(int(rr[root][right])))
+                    print(lhs, '->', *rhs, "{:d}".format(int(rr[lhs][rhs])))
 
-        for root in rl.keys():
-            if root in rr:
-                total = rr[root]['root_count'] + rl[root]['root_count']
-            else:
-                total = rl[root]['root_count']
-            for right in rl[root].keys():
-                if right == 'root_count':
-                    continue
-
-                rl[root][right] = rl[root][right] / total
-                if rl[root][right] % 1 > 0:
-                    print(root, right, rl[root][right])
+        for lhs, rules in rl.items():
+            for rhs in rules:
+                rl[lhs][rhs] = rl[lhs][rhs] / n[lhs]
+                if rl[lhs][rhs] % 1 > 0:
+                    print(lhs, rhs, rl[lhs][rhs])
                 else:
-                    print(root, right, "{:d}".format(int(rl[root][right])))
-            if root in rr:
-                del rr[root]['root_count']
-            del rl[root]['root_count']
+                    print(lhs, rhs, "{:d}".format(int(rl[lhs][rhs])))
 
         for word in w:
             print(word)
     # calculate probabilities and save data in files
     else:
         f = open(name + '.rules', "w")
-        for root in rr.keys():
-            if root in rl:
-                total = rr[root]['root_count'] + rl[root]['root_count']
-            else:
-                total = rr[root]['root_count']
-            for right in rr[root].keys():
-                if right == 'root_count':
-                    continue
-
-                rr[root][right] = rr[root][right] / total
-                if rr[root][right] % 1 > 0:
-                    f.write(root + ' -> ' + ' '.join(map(str, right)) + ' ' + str(rr[root][right]) + '\n')
+        for lhs, rules in rr.items():
+            for rhs in rules:
+                rr[lhs][rhs] = rr[lhs][rhs] / n[lhs]
+                if rr[lhs][rhs] % 1 > 0:
+                    f.write(lhs + ' -> ' + ' '.join(map(str, rhs)) + ' ' + str(rr[lhs][rhs]) + '\n')
                 else:
                     f.write(
-                        root + ' -> ' + ' '.join(map(str, right)) + ' ' + "{:d}".format(int(rr[root][right])) + '\n')
+                        lhs + ' -> ' + ' '.join(map(str, rhs)) + ' ' + "{:d}".format(int(rr[lhs][rhs])) + '\n')
         f.close()
 
         f = open(name + '.lexicon', "w")
-        for root in rl.keys():
-            if root in rr:
-                total = rr[root]['root_count'] + rl[root]['root_count']
-            else:
-                total = rl[root]['root_count']
-            for right in rl[root].keys():
-                if right == 'root_count':
-                    continue
-
-                rl[root][right] = rl[root][right] / total
-                if rl[root][right] % 1 > 0:
-                    f.write(root + ' ' + str(right) + ' ' + str(rl[root][right]) + '\n')
+        for lhs, rules in rl.items():
+            for rhs in rules:
+                rl[lhs][rhs] = rl[lhs][rhs] / n[lhs]
+                if rl[lhs][rhs] % 1 > 0:
+                    f.write(lhs + ' ' + str(rhs) + ' ' + str(rl[lhs][rhs]) + '\n')
                 else:
-                    f.write(root + ' ' + str(right) + ' ' + "{:d}".format(int(rl[root][right])) + '\n')
-            if root in rr:
-                del rr[root]['root_count']
-            del rl[root]['root_count']
+                    f.write(lhs + ' ' + str(rhs) + ' ' + "{:d}".format(int(rl[lhs][rhs])) + '\n')
         f.close()
 
         f = open(name + '.words', "w")
