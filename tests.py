@@ -91,9 +91,5 @@ class TestInduceGrammar(unittest.TestCase):
         tree = '   (  nt1   (  nt2  t1)(nt3 t2 ) ( nt4 t3)  )'
         self.assertEqual(induce_grammar.pre_check(tree), '(nt1 (nt2 t1) (nt3 t2) (nt4 t3))')
 
-    def test_pre_check_parentheses(self):
-        tree = '   (  nt1   (  nt2  t1)(nt3 t2 ) ( nt4 t3)'
-        self.assertEqual(induce_grammar.pre_check(tree), '')
-
 
 unittest.main()

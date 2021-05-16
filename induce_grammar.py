@@ -88,12 +88,9 @@ def get_rules(branch):
 
 
 def pre_check(tree):
-    # check if we even need to take a look at it
-    opening = re.findall(r'\(', tree)
-    closing = re.findall(r'\)', tree)
-    if len(opening) != len(closing):
-        print('ERROR: The number of opening and closing parentheses does not add up.', file=sys.stderr)
-        return ''
+    # don't check the number of parentheses here for every tree
+    # assuming that there are not many illegal trees
+    # also this error should be found in the first iteration of get_rules
 
     # ignore everything before the first opening parenthesis
     i = 0
