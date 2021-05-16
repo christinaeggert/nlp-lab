@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 
-import argparse
+import sys
 import induce_grammar
+import parse_phrases
 
-parser = argparse.ArgumentParser(description='Verarbeitung natürlicher Sprache')
-parser.add_argument('func', metavar='func', type=str, nargs=1, help='one of the implemented functions (induce)')
-parser.add_argument('name', metavar='name', type=str, nargs='?',
-                    help='name of the grammar')
-
-args = parser.parse_args()
-if args.func[0] == 'induce':
-    #print('Induziere Grammatik...')
+if len(sys.argv) < 2:
+    print('ERROR: Not enough arguments.\n'
+          'Syntax: pcfg_tool induce [GRAMMAR]\n'
+          '        pcfg_tool parse RULES LEXICON', file=sys.stderr)
+    exit(1)
+if sys.argv[1] == 'induce':
     name = ''
-    if args.name:
-        name = args.name
+    if len(sys.argv) > 2:
+        name = sys.argv[2]
     induce_grammar.induce_grammar(name)
+
+elif sys.argv[1] == 'parse':
+    if len(sys.argv) < 4:
+        print('ERROR: Not enough arguments.\n'
+              'Syntax: pcfg_tool parse RULES LEXICON', file=sys.stderr)
+        exit(1)
+    parse_phrases.parse_phrases(sys.argv[2], sys.argv[3])
+
 else:
-    print('ERROR: ', args.func[0], ' is not implemented.')
+    print('ERROR: ', sys.argv[1], ' is not implemented.', file=sys.stderr)
     exit(22)
