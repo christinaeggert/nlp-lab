@@ -1,3 +1,7 @@
+import sys
+from operator import itemgetter
+
+
 def read_rulesr(file):
     rr = {}
     for rule in open(file):  # rule = "A -> A1 .. An w\n"
@@ -34,5 +38,21 @@ def parse_phrases(rules, lexicon):
     rr = read_rulesr(rules)
     rl = read_rulesl(lexicon)
 
-    print(rr)
-    print(rl)
+    # print(rr)
+    # print(rl)
+
+    # testsentence: the director is 61 years old .
+    for phrase in sys.stdin:
+        phrase = phrase[0:len(phrase) - 1].split(" ")
+        
+        #  use lexical rules to turn terminals into nonterminals
+        c = {}
+        for i in range(len(phrase)):
+            c[i] = {}
+            c[i][i + 1] = {}
+            for lhs, rules in rl.items():
+                if phrase[i] in rules:
+                    c[i][i + 1][lhs] = rl[lhs][phrase[i]]
+
+        lhs, w = max(c[0][1].items(), key=itemgetter(1))
+        print(lhs + ':' + str(w))
