@@ -20,7 +20,7 @@ elif sys.argv[1] == 'parse':
         print('ERROR: Not enough arguments.\n'
               'Syntax: pcfg_tool parse RULES LEXICON', file=sys.stderr)
         exit(1)
-    parse_phrases.parse_phrases(sys.argv[2], sys.argv[3])
+    parse_phrases.parse_phrases_cyk(sys.argv[2], sys.argv[3])
 
 else:
     print('ERROR: ', sys.argv[1], ' is not implemented.', file=sys.stderr)

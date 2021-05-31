@@ -34,25 +34,94 @@ def read_rulesl(file):
     return rl
 
 
-def parse_phrases(rules, lexicon):
+def get_branch(lhs, c, i, j):
+    if len(c[i][j][lhs]) == 4:
+        # binary rule
+        rhs, w, i_m, m_j = c[i][j][lhs]
+        tree = '(' + lhs + ' ' + get_branch(rhs[0], c, i_m[0], i_m[1]) + ' ' + get_branch(rhs[1], c, m_j[0],
+                                                                                          m_j[1]) + ')'
+    elif len(c[i][j][lhs]) == 3:
+        # unary rule
+        rhs, w, i_j = c[i][j][lhs]
+        tree = '(' + lhs + ' ' + get_branch(rhs[0], c, i_j[0], i_j[1]) + ')'
+
+    elif len(c[i][j][lhs]) == 2:
+        # leaf
+        tree = '(' + lhs + ' ' + c[i][j][lhs][0] + ')'
+
+    else:
+        print('ERROR: illegal tuple: ', c[i][j][lhs], file=sys.stderr)
+        tree = '( )'
+
+    return tree
+
+
+def construct_ptb_tree(c):
+    if c[0][len(c)] == {} or 'ROOT' not in c[0][len(c)]:  # oder S nicht beinhaltet
+        return 'NOPARSE'
+
+    penn_tree = get_branch('ROOT', c, 0, len(c))
+    return penn_tree
+
+
+def unary_closure(rr, c):
+    queue = []
+    for lhs in c:
+        queue.append((lhs, c[lhs][1]))
+        c[lhs] = (c[lhs][0], 0, c[lhs][2], c[lhs][3])
+    while len(queue) != 0:
+        new_rhs, q = queue.pop(queue.index(max(queue, key=itemgetter(1))))
+        if c[new_rhs][1] < q:
+            c[new_rhs] = (c[new_rhs][0], q, c[new_rhs][2], c[new_rhs][3])  # rr[new_lhs][new_rhs] *
+            for new_lhs, rules in rr.items():
+                if (new_rhs,) in rules:
+                    queue.append((new_lhs, rr[new_lhs][(new_rhs,)] * q))
+                    # save used rule for back tracing
+                    c[new_lhs] = ((new_rhs,), rr[new_lhs][(new_rhs,)] * q, (c[new_rhs][2][0], c[new_rhs][3][1]))
+    return c
+
+
+def parse_phrases_cyk(rules, lexicon):
     rr = read_rulesr(rules)
     rl = read_rulesl(lexicon)
 
-    # print(rr)
-    # print(rl)
-
-    # testsentence: the director is 61 years old .
+    # testsentence: Not this year .
     for phrase in sys.stdin:
         phrase = phrase[0:len(phrase) - 1].split(" ")
-        
+
+        # initialise cost map with empty dicts
+        c = dict.fromkeys(range(0, len(phrase)))
+        for key in c.keys():
+            c[key] = {key2: {} for key2 in range(key + 1, len(phrase) + 1)}
+
         #  use lexical rules to turn terminals into nonterminals
-        c = {}
         for i in range(len(phrase)):
-            c[i] = {}
-            c[i][i + 1] = {}
             for lhs, rules in rl.items():
                 if phrase[i] in rules:
-                    c[i][i + 1][lhs] = rl[lhs][phrase[i]]
+                    c[i][i + 1][lhs] = (phrase[i], rl[lhs][phrase[i]])
 
-        lhs, w = max(c[0][1].items(), key=itemgetter(1))
-        print(lhs + ':' + str(w))
+        # lhs, w = max(c[0][1].items(), key=itemgetter(1))
+        # print(lhs + ':' + str(w))
+
+        # use the other rules for the rest of the rows
+        for r in range(2, len(phrase) + 1):
+            for i in range(0, len(phrase) - r + 1):
+                j = i + r
+
+                for lhs, rules in rr.items():
+                    for rhs in rules:
+                        for m in range(i + 1, j):
+                            if len(rhs) > 1:
+                                c_im = c[i][m].get(rhs[0], 'none')
+                                c_mj = c[m][j].get(rhs[1], 'none')
+                                if c_im != 'none' and c_mj != 'none':
+                                    prev_val = c[i][j].get(lhs, 'none')
+                                    new_val = rr[lhs][rhs] * c_im[1] * c_mj[1]
+                                    if prev_val == 'none' or prev_val[1] < new_val:
+                                        c[i][j][lhs] = (rhs, new_val, (i, m), (m, j))
+                            else:
+                                continue
+
+                c[i][j] = unary_closure(rr, c[i][j])
+
+        print(construct_ptb_tree(c))

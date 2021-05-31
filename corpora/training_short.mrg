@@ -2,3 +2,5 @@
 (ROOT (S (NP-SBJ (NNP Mr.) (NNP Vinken)) (VP (VBZ is) (NP-PRD (NP (NN chairman)) (PP (IN of) (NP (NP (NNP Elsevier) (NNP N.V.)) (, ,) (NP (DT the) (NNP Dutch) (VBG publishing) (NN group)))))) (. .)))
 (nt1 (nt2 (nt5 t1) (nt3 t2) (nt4)))
 (nt1 (nt2 (nt5 t1) (nt3 t2) (nt4 t3)))
+(ROOT (S (NP-SBJ (EX There)) (VP (VBZ is) (NP-PRD (DT no) (NN asbestos)) (PP-LOC (IN in) (NP (PRP$ our) (NNS products))) (ADVP-TMP (RB now))) (. .) ('' '')))
+(ROOT (FRAG (RB Not) (NP-TMP (DT this) (NN year)) (. .)))
