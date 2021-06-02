@@ -1,5 +1,10 @@
 import sys
 from operator import itemgetter
+import collections
+
+BinaryRule = collections.namedtuple('BinaryRule', ['nonterminals', 'probability', 'child1', 'child2'])
+UnaryRule = collections.namedtuple('UnaryClosure', ['nonterminal', 'probability', 'child'])
+LexicalRule = collections.namedtuple('LexicalRule', ['word', 'probability'])
 
 
 def read_rulesr(file):
@@ -35,49 +40,51 @@ def read_rulesl(file):
 
 
 def get_branch(lhs, c, i, j):
-    if len(c[i][j][lhs]) == 4:
-        # binary rule
-        rhs, w, i_m, m_j = c[i][j][lhs]
-        tree = '(' + lhs + ' ' + get_branch(rhs[0], c, i_m[0], i_m[1]) + ' ' + get_branch(rhs[1], c, m_j[0],
-                                                                                          m_j[1]) + ')'
-    elif len(c[i][j][lhs]) == 3:
-        # unary rule
-        rhs, w, i_j = c[i][j][lhs]
-        tree = '(' + lhs + ' ' + get_branch(rhs[0], c, i_j[0], i_j[1]) + ')'
+    branch = c[i][j][lhs]
+    if isinstance(branch, BinaryRule):
+        child1 = get_branch(branch.nonterminals[0], c, branch.child1[0], branch.child1[1])
+        child2 = get_branch(branch.nonterminals[1], c, branch.child2[0], branch.child2[1])
+        if child1 and child2:
+            return '(' + lhs + ' ' + child1 + ' ' + child2 + ')'
 
-    elif len(c[i][j][lhs]) == 2:
-        # leaf
-        tree = '(' + lhs + ' ' + c[i][j][lhs][0] + ')'
+    if isinstance(branch, UnaryRule):
+        child = get_branch(branch.nonterminal[0], c, branch.child[0], branch.child[1])
+        if child:
+            return '(' + lhs + ' ' + child + ')'
 
-    else:
-        print('ERROR: illegal tuple: ', c[i][j][lhs], file=sys.stderr)
-        tree = '( )'
+    if isinstance(branch, LexicalRule):
+        return '(' + lhs + ' ' + branch.word + ')'
 
-    return tree
+    print('ERROR: illegal rule: ', c[i][j][lhs], file=sys.stderr)
+    return False
 
 
-def construct_ptb_tree(c):
-    if c[0][len(c)] == {} or 'ROOT' not in c[0][len(c)]:  # oder S nicht beinhaltet
-        return 'NOPARSE'
+def construct_ptb_tree(c, root):
+    if c[0][len(c)] == {} or root not in c[0][len(c)]:
+        return False
 
-    penn_tree = get_branch('ROOT', c, 0, len(c))
+    # TODO: use max root
+    penn_tree = get_branch(root, c, 0, len(c))
     return penn_tree
 
 
-def unary_closure(rr, c):
+def unary_closure(rr, c, i, j):
     queue = []
     for lhs in c:
-        queue.append((lhs, c[lhs][1]))
-        c[lhs] = (c[lhs][0], 0, c[lhs][2], c[lhs][3])
+        queue.append((lhs, c[lhs].probability))
+        c[lhs] = c[lhs]._replace(probability=0)
     while len(queue) != 0:
         new_rhs, q = queue.pop(queue.index(max(queue, key=itemgetter(1))))
-        if c[new_rhs][1] < q:
-            c[new_rhs] = (c[new_rhs][0], q, c[new_rhs][2], c[new_rhs][3])  # rr[new_lhs][new_rhs] *
+        if c[new_rhs].probability < q:
+            c[new_rhs] = c[new_rhs]._replace(probability=q)
+
             for new_lhs, rules in rr.items():
                 if (new_rhs,) in rules:
-                    queue.append((new_lhs, rr[new_lhs][(new_rhs,)] * q))
-                    # save used rule for back tracing
-                    c[new_lhs] = ((new_rhs,), rr[new_lhs][(new_rhs,)] * q, (c[new_rhs][2][0], c[new_rhs][3][1]))
+                    # already existing derivations can not be overridden to avoid infinite loops
+                    if new_lhs not in c:
+                        queue.append((new_lhs, rr[new_lhs][(new_rhs,)] * q))
+                        # save used rule for back tracing
+                        c[new_lhs] = UnaryRule((new_rhs,), 0, (i, j))
     return c
 
 
@@ -87,7 +94,8 @@ def parse_phrases_cyk(rules, lexicon):
 
     # testsentence: Not this year .
     for phrase in sys.stdin:
-        phrase = phrase[0:len(phrase) - 1].split(" ")
+        phrase_str = phrase[0:len(phrase) - 1]
+        phrase = phrase_str.split(" ")
 
         # initialise cost map with empty dicts
         c = dict.fromkeys(range(0, len(phrase)))
@@ -98,12 +106,13 @@ def parse_phrases_cyk(rules, lexicon):
         for i in range(len(phrase)):
             for lhs, rules in rl.items():
                 if phrase[i] in rules:
-                    c[i][i + 1][lhs] = (phrase[i], rl[lhs][phrase[i]])
+                    c[i][i + 1][lhs] = LexicalRule(phrase[i], rl[lhs][phrase[i]])
+            c[i][i + 1] = unary_closure(rr, c[i][i + 1], i, i + 1)
 
         # lhs, w = max(c[0][1].items(), key=itemgetter(1))
         # print(lhs + ':' + str(w))
 
-        # use the other rules for the rest of the rows
+        # use the binary rules for the rest of the rows
         for r in range(2, len(phrase) + 1):
             for i in range(0, len(phrase) - r + 1):
                 j = i + r
@@ -112,16 +121,21 @@ def parse_phrases_cyk(rules, lexicon):
                     for rhs in rules:
                         for m in range(i + 1, j):
                             if len(rhs) > 1:
-                                c_im = c[i][m].get(rhs[0], 'none')
-                                c_mj = c[m][j].get(rhs[1], 'none')
-                                if c_im != 'none' and c_mj != 'none':
+                                child1 = c[i][m].get(rhs[0], 'none')
+                                child2 = c[m][j].get(rhs[1], 'none')
+                                if child1 != 'none' and child2 != 'none':
                                     prev_val = c[i][j].get(lhs, 'none')
-                                    new_val = rr[lhs][rhs] * c_im[1] * c_mj[1]
+                                    new_val = rr[lhs][rhs] * child1.probability * child2.probability
                                     if prev_val == 'none' or prev_val[1] < new_val:
-                                        c[i][j][lhs] = (rhs, new_val, (i, m), (m, j))
+                                        c[i][j][lhs] = BinaryRule(rhs, new_val, (i, m), (m, j))
                             else:
                                 continue
 
-                c[i][j] = unary_closure(rr, c[i][j])
+                c[i][j] = unary_closure(rr, c[i][j], i, j)
 
-        print(construct_ptb_tree(c))
+        # TODO: variable root
+        tree = construct_ptb_tree(c, 'ROOT')
+        if not tree:
+            print('(NOPARSE ' + phrase_str + ')')
+        else:
+            print(tree)
