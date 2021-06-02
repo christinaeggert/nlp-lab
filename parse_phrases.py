@@ -9,8 +9,11 @@ LexicalRule = collections.namedtuple('LexicalRule', ['word', 'probability'])
 
 def read_rulesr(file):
     rr = {}
-    for rule in open(file):  # rule = "A -> A1 .. An w\n"
-        rule = rule[0:len(rule) - 1].split(" ")  # get list of tokens without \n at the end
+    for rule in open(file):  # rule = "A -> A1 .. An w[\n]"
+        # get rid of \n if present
+        if rule[len(rule) - 1] == '\n':
+            rule = rule[0:len(rule) - 1]
+        rule = rule.split(" ")  # get list of tokens
         lhs = rule.pop(0)  # first element is root
         w = rule.pop(len(rule) - 1)  # last element is the probability
         rhs = rule[1:len(rule)]  # cut '->' to get the right hand side of the rule
@@ -29,8 +32,11 @@ def read_rulesr(file):
 
 def read_rulesl(file):
     rl = {}
-    for rule in open(file):  # rule = "A v w\n"
-        lhs, rhs, w = rule[0:len(rule) - 1].split(" ")
+    for rule in open(file):  # rule = "A v w[\n]"
+        # get rid of \n if present
+        if rule[len(rule) - 1] == '\n':
+            rule = rule[0:len(rule) - 1]
+        lhs, rhs, w = rule.split(" ")
         if lhs in rl:
             rl[lhs].update({rhs: float(w)})
         else:
@@ -94,7 +100,11 @@ def parse_phrases_cyk(rules, lexicon):
 
     # testsentence: Not this year .
     for phrase in sys.stdin:
-        phrase_str = phrase[0:len(phrase) - 1]
+        phrase_str = ''
+        if phrase[len(phrase) - 1] == '\n':
+            phrase_str = phrase[0:len(phrase) - 1]
+        else:
+            phrase_str = phrase
         phrase = phrase_str.split(" ")
 
         # initialise cost map with empty dicts
