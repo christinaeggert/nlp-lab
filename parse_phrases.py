@@ -66,11 +66,11 @@ def get_branch(lhs, c, i, j):
 
 
 def construct_ptb_tree(c, root):
-    if c[0][len(c)] == {} or root not in c[0][len(c)]:
+    if c[0][len(c)] == {} or 'ROOT' not in c[0][len(c)]:
         return False
 
-    # TODO: use max root
-    penn_tree = get_branch(root, c, 0, len(c))
+    penn_tree = get_branch('ROOT', c, 0, len(c))
+    penn_tree = penn_tree.replace('ROOT', root)
     return penn_tree
 
 
@@ -94,12 +94,13 @@ def unary_closure(rr, c, i, j):
     return c
 
 
-def parse_phrases_cyk(rules, lexicon):
+def parse_phrases_cyk(rules, lexicon, root):
     rr = read_rulesr(rules)
     rl = read_rulesl(lexicon)
 
     # testsentence: Not this year .
     for phrase in sys.stdin:
+        # TODO: escape sequences?
         phrase_str = ''
         if phrase[len(phrase) - 1] == '\n':
             phrase_str = phrase[0:len(phrase) - 1]
@@ -144,7 +145,7 @@ def parse_phrases_cyk(rules, lexicon):
                 c[i][j] = unary_closure(rr, c[i][j], i, j)
 
         # TODO: variable root
-        tree = construct_ptb_tree(c, 'ROOT')
+        tree = construct_ptb_tree(c, root)
         if not tree:
             print('(NOPARSE ' + phrase_str + ')')
         else:
