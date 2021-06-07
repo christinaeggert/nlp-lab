@@ -102,7 +102,7 @@ def parse_phrases_cyk(rules, lexicon, root):
         for rhs in rules:
             if rhs[0] in nts:
                 nts.remove(rhs[0])
-            if rhs[1] in nts:
+            if len(rhs) == 2 and rhs[1] in nts:
                 nts.remove(rhs[1])
     # if there are several: error no unambiguous start symbol
     if len(nts) == 1:
