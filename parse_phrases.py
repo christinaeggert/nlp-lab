@@ -65,12 +65,12 @@ def get_branch(lhs, c, i, j):
     return False
 
 
-def construct_ptb_tree(c, root):
-    if c[0][len(c)] == {} or 'ROOT' not in c[0][len(c)]:
+def construct_ptb_tree(c, start_rr, new_root):
+    if c[0][len(c)] == {} or start_rr not in c[0][len(c)]:
         return False
 
-    penn_tree = get_branch('ROOT', c, 0, len(c))
-    penn_tree = penn_tree.replace('ROOT', root)
+    penn_tree = get_branch(start_rr, c, 0, len(c))
+    penn_tree = penn_tree.replace(start_rr, new_root)
     return penn_tree
 
 
@@ -96,6 +96,23 @@ def unary_closure(rr, c, i, j):
 
 def parse_phrases_cyk(rules, lexicon, root):
     rr = read_rulesr(rules)
+    # find start symbol: nt that only appears as lhs
+    nts = set(rr.keys())
+    for lhs, rules in rr.items():
+        for rhs in rules:
+            if rhs[0] in nts:
+                nts.remove(rhs[0])
+            if rhs[1] in nts:
+                nts.remove(rhs[1])
+    # if there are several: error no unambiguous start symbol
+    if len(nts) == 1:
+        s = nts.pop()
+    elif len(nts) == 0:
+        print('ERROR: no start symbol found.', file=sys.stderr)
+        exit(1)
+    else:
+        print('ERROR: ambiguous start symbol.', file=sys.stderr)
+        exit(1)
     rl = read_rulesl(lexicon)
 
     # testsentence: Not this year .
@@ -145,7 +162,7 @@ def parse_phrases_cyk(rules, lexicon, root):
                 c[i][j] = unary_closure(rr, c[i][j], i, j)
 
         # TODO: variable root
-        tree = construct_ptb_tree(c, root)
+        tree = construct_ptb_tree(c, s, root)
         if not tree:
             print('(NOPARSE ' + phrase_str + ')')
         else:
