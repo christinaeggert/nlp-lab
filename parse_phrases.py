@@ -162,9 +162,9 @@ def parse_phrases_cyk(rules, lexicon, root):
                             for rhs1 in c[m][j]:
                                 if rhs1 in rr[rhs0]:
                                     for lhs in rr[rhs0][rhs1]:
-                                        prev_val = c[i][j].get(lhs, 'none')
+                                        prev_val = c[i][j].get(lhs)
                                         new_val = rr[rhs0][rhs1][lhs] * c[i][m][rhs0].probability * c[m][j][rhs1].probability
-                                        if prev_val == 'none' or prev_val[1] < new_val:
+                                        if prev_val is None or prev_val[1] < new_val:
                                             c[i][j][lhs] = BinaryRule((rhs0, rhs1), new_val, (i, m), (m, j))
 
                 c[i][j] = unary_closure(rr, c[i][j], i, j)
