@@ -113,11 +113,12 @@ def unary_closure(rr, c, i, j):
             if new_rhs in rr:
                 if 'none' in rr[new_rhs]:
                     for new_lhs in rr[new_rhs]['none']:
-                        # already existing derivations can not be overridden to avoid infinite loops
-                        if new_lhs not in c:
-                            queue.append((new_lhs, rr[new_rhs]['none'][new_lhs] * q))
-                            # save used rule for back tracing
-                            c[new_lhs] = UnaryRule((new_rhs,), 0, (i, j))
+                        # already existing derivations must be checked before overriding them to avoid infinite loops
+                        if new_lhs in c and rr[new_rhs]['none'][new_lhs] * q < c[new_lhs].probability:
+                            continue
+                        queue.append((new_lhs, rr[new_rhs]['none'][new_lhs] * q))
+                        # save used rule for back tracing
+                        c[new_lhs] = UnaryRule((new_rhs,), 0, (i, j))
 
     return c
 
