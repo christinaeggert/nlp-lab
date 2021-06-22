@@ -4,6 +4,7 @@ import sys
 import argparse
 import induce_grammar
 import parse_phrases
+import debinarize
 
 if len(sys.argv) < 2:
     print('ERROR: Not enough arguments.\n'
@@ -35,6 +36,9 @@ elif sys.argv[1] == 'parse':
     else:
         print('ERROR:', args.paradigm, 'is not a valid argument for paradigm.', file=sys.stderr)
         exit(1)
+
+elif sys.argv[1] == 'debinarise':
+    debinarize.process_trees()
 
 else:
     print('ERROR: ', sys.argv[1], ' is not implemented.', file=sys.stderr)
