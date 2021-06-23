@@ -1,6 +1,7 @@
 import unittest
 
 import induce_grammar
+import debinarize
 
 
 class TestInduceGrammar(unittest.TestCase):
@@ -90,6 +91,24 @@ class TestInduceGrammar(unittest.TestCase):
     def test_pre_check_spaces(self):
         tree = '   (  nt1   (  nt2  t1)(nt3 t2 ) ( nt4 t3)  )'
         self.assertEqual(induce_grammar.pre_check(tree), '(nt1 (nt2 t1) (nt3 t2) (nt4 t3))')
+
+
+class TestDebinarization(unittest.TestCase):
+    def test_leaf(self):
+        tree = 'A a'
+        self.assertEqual(debinarize.debinarise(tree), '(A a)')
+
+    def test_debin_branch(self):
+        tree = 'A (B b)'
+        self.assertEqual(debinarize.debinarise(tree), '(A (B b))')
+
+    def test_bin_branch(self):
+        tree = 'A (B b) (A|C,D (C c) (D d))'
+        self.assertEqual(debinarize.debinarise(tree), '(A (B b) (C c) (D d))')
+
+    def test_parentheses_error(self):
+        tree = 'A (B b'
+        self.assertEqual(debinarize.debinarise(tree), 'err')
 
 
 unittest.main()

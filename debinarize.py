@@ -20,9 +20,16 @@ def debinarise(branch):
                 br.append(branches[cut:i + 1])
                 cut = i + 2
 
+    if closing != opening:
+        print('ERROR: The number of opening and closing parentheses does not add up.', file=sys.stderr)
+        return 'err'
+
     ret = ''
     for new_branch in br:
-        ret += ' ' + debinarise(new_branch[1:len(new_branch) - 1])
+        debinarised = debinarise(new_branch[1:len(new_branch) - 1])
+        if debinarised == 'err':
+            return debinarised
+        ret += ' ' + debinarised
     ret = ret[1:len(ret)]
     if '|' not in root:
         ret = '(' + root + ' ' + ret + ')'
