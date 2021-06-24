@@ -24,12 +24,14 @@ elif sys.argv[1] == 'parse':
                         help='parser paradigm (cyk or deductive), default: cyk')
     parser.add_argument('-i', '--initial-nonterminal', nargs='?', type=str, default='ROOT',
                         help='defines initial nonterminal, default: ROOT')
+    parser.add_argument('-u', '--unking', action='store_true', dest='unking',
+                        help='replace unkown words with UNK')
     parser.add_argument('RULES', type=str, help='file that contains the rules')
     parser.add_argument('LEXICON', type=str, help='file that contains the lexical rules')
 
     args = parser.parse_args()
     if args.paradigm == 'cyk':
-        parse_phrases.parse_phrases_cyk(args.RULES, args.LEXICON, args.initial_nonterminal)
+        parse_phrases.parse_phrases_cyk(args.RULES, args.LEXICON, args.initial_nonterminal, args.unking)
     elif args.paradigm == 'deductive':
         print('INFO: deductive parsing is not implemented.', file=sys.stderr)
         exit(22)

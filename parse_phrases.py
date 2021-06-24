@@ -123,7 +123,7 @@ def unary_closure(rr, c, i, j):
     return c
 
 
-def parse_phrases_cyk(rules, lexicon, root):
+def parse_phrases_cyk(rules, lexicon, root, unking):
     rr, s = read_rulesr(rules)
     rl = read_rulesl(lexicon)
 
@@ -136,6 +136,7 @@ def parse_phrases_cyk(rules, lexicon, root):
         else:
             phrase_str = phrase
         phrase = phrase_str.split(" ")
+        word_map = phrase
 
         # initialise cost map with empty dicts
         c = dict.fromkeys(range(0, len(phrase)))
@@ -144,10 +145,20 @@ def parse_phrases_cyk(rules, lexicon, root):
 
         #  use lexical rules to turn terminals into nonterminals
         for i in range(len(phrase)):
+            if phrase[i] not in rl and unking:
+                # replace unkown word with UNK
+                phrase[i] = 'UNK'
             if phrase[i] in rl:
                 for lhs in rl[phrase[i]]:
                     c[i][i + 1][lhs] = LexicalRule(phrase[i], rl[phrase[i]][lhs])
                 c[i][i + 1] = unary_closure(rr, c[i][i + 1], i, i + 1)
+
+        if unking:
+            # restore UNK as original word
+            for i in range(len(phrase)):
+                for lhs in c[i][i+1]:
+                    if isinstance(c[i][i+1][lhs], LexicalRule):
+                        c[i][i+1][lhs]._replace(word=word_map[i])
 
         # lhs, w = max(c[0][1].items(), key=itemgetter(1))
         # print(lhs + ':' + str(w))
