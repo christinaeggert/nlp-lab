@@ -5,6 +5,7 @@ import argparse
 import induce_grammar
 import parse_phrases
 import debinarize
+import unking
 
 if len(sys.argv) < 2:
     print('ERROR: Not enough arguments.\n'
@@ -41,6 +42,15 @@ elif sys.argv[1] == 'parse':
 
 elif sys.argv[1] == 'debinarise':
     debinarize.process_trees()
+
+elif sys.argv[1] == 'unk':
+    parser = argparse.ArgumentParser(description='Trivial unking')
+    parser.add_argument('unk', type=str, nargs=1)
+    parser.add_argument('-t', '--threshold', nargs='?', type=int, default=1,
+                        help='defines threshold of frequency, default: 1')
+
+    args = parser.parse_args()
+    unking.unk(args.threshold)
 
 else:
     print('ERROR: ', sys.argv[1], ' is not implemented.', file=sys.stderr)
