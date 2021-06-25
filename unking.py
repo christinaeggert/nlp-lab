@@ -34,4 +34,4 @@ def unk(threshold):
         if frequency <= threshold:
             corpus = corpus.replace(word, ' ' + 'UNK' + ')')
 
-    print(corpus)
+    print(corpus, end = "")
