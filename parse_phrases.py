@@ -2,6 +2,8 @@ import sys
 from operator import itemgetter
 import collections
 
+# import unking
+
 BinaryRule = collections.namedtuple('BinaryRule', ['nonterminals', 'probability', 'child1', 'child2'])
 UnaryRule = collections.namedtuple('UnaryClosure', ['nonterminal', 'probability', 'child'])
 LexicalRule = collections.namedtuple('LexicalRule', ['word', 'probability'])
@@ -147,6 +149,7 @@ def parse_phrases_cyk(rules, lexicon, root, unking):
         for i in range(len(phrase)):
             if phrase[i] not in rl and unking:
                 # replace unkown word with UNK
+                # phrase[i] = unking.get_signature(phrase[i], i)
                 phrase[i] = 'UNK'
             if phrase[i] in rl:
                 for lhs in rl[phrase[i]]:
