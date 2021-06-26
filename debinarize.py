@@ -6,6 +6,8 @@ def debinarise(branch):
         return '(' + branch + ')'
 
     root, branches = branch.split(' ', 1)
+    # delete parents (e.g. FRAG^<ROOT> --> FRAG)
+    root = root.split('^')[0]
     # find the branches by matching parentheses
     opening = 0
     closing = 0
