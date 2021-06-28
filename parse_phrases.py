@@ -102,6 +102,16 @@ def construct_ptb_tree(c, start, new_start):
     return penn_tree
 
 
+def prune(c, threshold):
+    if len(c) != 0:
+        cut = max(c.values(), key=itemgetter(1))[1] * threshold
+        for lhs in c:
+            if c[lhs].probability < cut:
+                c[lhs] = c[lhs]._replace(probability=0)
+
+    return c
+
+
 def unary_closure(rr, c, i, j):
     queue = []
     for lhs in c:
@@ -125,7 +135,7 @@ def unary_closure(rr, c, i, j):
     return c
 
 
-def parse_phrases_cyk(rules, lexicon, root, unking):
+def parse_phrases_cyk(rules, lexicon, root, unking, threshold):
     rr, s = read_rulesr(rules)
     rl = read_rulesl(lexicon)
 
@@ -155,6 +165,7 @@ def parse_phrases_cyk(rules, lexicon, root, unking):
                 for lhs in rl[phrase[i]]:
                     c[i][i + 1][lhs] = LexicalRule(word_map[i], rl[phrase[i]][lhs])
                 c[i][i + 1] = unary_closure(rr, c[i][i + 1], i, i + 1)
+            c[i][i + 1] = prune(c[i][i + 1], threshold)
 
         # lhs, w = max(c[0][1].items(), key=itemgetter(1))
         # print(lhs + ':' + str(w))
@@ -166,16 +177,19 @@ def parse_phrases_cyk(rules, lexicon, root, unking):
 
                 for m in range(i + 1, j):
                     for rhs0 in c[i][m]:
-                        if rhs0 in rr:
+                        prob0 = c[i][m][rhs0].probability
+                        if prob0 != 0 and rhs0 in rr:
                             for rhs1 in c[m][j]:
-                                if rhs1 in rr[rhs0]:
+                                prob1 = c[m][j][rhs1].probability
+                                if prob1 != 0 and rhs1 in rr[rhs0]:
                                     for lhs in rr[rhs0][rhs1]:
                                         prev_val = c[i][j].get(lhs)
-                                        new_val = rr[rhs0][rhs1][lhs] * c[i][m][rhs0].probability * c[m][j][rhs1].probability
+                                        new_val = rr[rhs0][rhs1][lhs] * prob0 * prob1
                                         if prev_val is None or prev_val[1] < new_val:
                                             c[i][j][lhs] = BinaryRule((rhs0, rhs1), new_val, (i, m), (m, j))
 
                 c[i][j] = unary_closure(rr, c[i][j], i, j)
+                c[i][j] = prune(c[i][j], threshold)
 
         tree = construct_ptb_tree(c, s, root)
         if not tree:
