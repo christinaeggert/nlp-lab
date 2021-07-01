@@ -103,7 +103,7 @@ def construct_ptb_tree(c, start, new_start):
 
 
 def prune(c, threshold):
-    if len(c) != 0:
+    if threshold != 0 and len(c) != 0:
         cut = max(c.values(), key=itemgetter(1))[1] * threshold
         for lhs in c:
             if c[lhs].probability < cut:

@@ -25,8 +25,8 @@ elif sys.argv[1] == 'parse':
                         help='parser paradigm (cyk or deductive), default: cyk')
     parser.add_argument('-i', '--initial-nonterminal', nargs='?', type=str, default='ROOT',
                         help='defines initial nonterminal, default: ROOT')
-    parser.add_argument('-t', '--threshold-beam', nargs='?', type=float, default=0.01,
-                        help='threshold for pruning, default: 0.01')
+    parser.add_argument('-t', '--threshold-beam', nargs='?', type=float, default=0,
+                        help='threshold for pruning')
     parser.add_argument('-u', '--unking', action='store_true', dest='unking',
                         help='replace unkown words with UNK')
     parser.add_argument('RULES', type=str, help='file that contains the rules')
