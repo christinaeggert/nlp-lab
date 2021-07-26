@@ -4,8 +4,8 @@ import collections
 
 # import unking
 
-BinaryRule = collections.namedtuple('BinaryRule', ['nonterminals', 'probability', 'child1', 'child2'])
-UnaryRule = collections.namedtuple('UnaryClosure', ['nonterminal', 'probability', 'child'])
+BinaryRule = collections.namedtuple('BinaryRule', ['nonterminals', 'probability', 'cut'])
+UnaryRule = collections.namedtuple('UnaryRule', ['nonterminal', 'probability'])
 LexicalRule = collections.namedtuple('LexicalRule', ['word', 'probability'])
 
 
@@ -76,13 +76,13 @@ def read_rulesl(file):
 def get_branch(lhs, c, i, j):
     branch = c[i][j][lhs]
     if isinstance(branch, BinaryRule):
-        child1 = get_branch(branch.nonterminals[0], c, branch.child1[0], branch.child1[1])
-        child2 = get_branch(branch.nonterminals[1], c, branch.child2[0], branch.child2[1])
+        child1 = get_branch(branch.nonterminals[0], c, i, branch.cut)
+        child2 = get_branch(branch.nonterminals[1], c, branch.cut, j)
         if child1 and child2:
             return '(' + lhs + ' ' + child1 + ' ' + child2 + ')'
 
     if isinstance(branch, UnaryRule):
-        child = get_branch(branch.nonterminal[0], c, branch.child[0], branch.child[1])
+        child = get_branch(branch.nonterminal[0], c, i, j)
         if child:
             return '(' + lhs + ' ' + child + ')'
 
@@ -112,7 +112,7 @@ def prune(c, threshold):
     return c
 
 
-def unary_closure(rr, c, i, j):
+def unary_closure(rr, c):
     queue = []
     for lhs in c:
         queue.append((lhs, c[lhs].probability))
@@ -130,7 +130,7 @@ def unary_closure(rr, c, i, j):
                             continue
                         queue.append((new_lhs, rr[new_rhs]['none'][new_lhs] * q))
                         # save used rule for back tracing
-                        c[new_lhs] = UnaryRule((new_rhs,), 0, (i, j))
+                        c[new_lhs] = UnaryRule((new_rhs,), 0)
 
     return c
 
@@ -139,9 +139,7 @@ def parse_phrases_cyk(rules, lexicon, root, unking, threshold):
     rr, s = read_rulesr(rules)
     rl = read_rulesl(lexicon)
 
-    # testsentence: Not this year .
     for phrase in sys.stdin:
-        # escape sequences are my friends?
         phrase_str = ''
         if phrase[len(phrase) - 1] == '\n':
             phrase_str = phrase[0:len(phrase) - 1]
@@ -164,11 +162,8 @@ def parse_phrases_cyk(rules, lexicon, root, unking, threshold):
             if phrase[i] in rl:
                 for lhs in rl[phrase[i]]:
                     c[i][i + 1][lhs] = LexicalRule(word_map[i], rl[phrase[i]][lhs])
-                c[i][i + 1] = unary_closure(rr, c[i][i + 1], i, i + 1)
+                c[i][i + 1] = unary_closure(rr, c[i][i + 1])
             c[i][i + 1] = prune(c[i][i + 1], threshold)
-
-        # lhs, w = max(c[0][1].items(), key=itemgetter(1))
-        # print(lhs + ':' + str(w))
 
         # use the binary rules for the rest of the rows
         for r in range(2, len(phrase) + 1):
@@ -185,10 +180,10 @@ def parse_phrases_cyk(rules, lexicon, root, unking, threshold):
                                     for lhs in rr[rhs0][rhs1]:
                                         prev_val = c[i][j].get(lhs)
                                         new_val = rr[rhs0][rhs1][lhs] * prob0 * prob1
-                                        if prev_val is None or prev_val[1] < new_val:
-                                            c[i][j][lhs] = BinaryRule((rhs0, rhs1), new_val, (i, m), (m, j))
+                                        if prev_val is None or prev_val.probability < new_val:
+                                            c[i][j][lhs] = BinaryRule((rhs0, rhs1), new_val, m)
 
-                c[i][j] = unary_closure(rr, c[i][j], i, j)
+                c[i][j] = unary_closure(rr, c[i][j])
                 c[i][j] = prune(c[i][j], threshold)
 
         tree = construct_ptb_tree(c, s, root)

@@ -20,7 +20,7 @@ def get_rules(branch):
     rr = {}  # rules
     rl = {}  # lexical rules
     v = set()  # words
-    n = collections.defaultdict(int)  # notterminals
+    n = collections.defaultdict(int)  # nonterminals
     # only two symbols left: A v
     leaves = branch.split()
     if len(leaves) == 2:
@@ -118,7 +118,7 @@ def induce_grammar(name):
     rr = {}  # rules
     rl = {}  # lexical rules
     v = set()  # words
-    n = collections.defaultdict(int)  # notterminals
+    n = collections.defaultdict(int)  # nonterminals
     # iterate over all training data
     for tree in sys.stdin:
         tree = pre_check(tree)
